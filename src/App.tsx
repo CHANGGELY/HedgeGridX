@@ -1,14 +1,14 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import Layout from './components/Layout';
-import Dashboard from './pages/Dashboard';
-import StrategyConfig from './pages/StrategyConfig';
-import BacktestResults from './pages/BacktestResults';
-import Optimization from './pages/Optimization';
-import LiveMonitor from './pages/LiveMonitor';
-import DataManagement from './pages/DataManagement';
-import Settings from './pages/Settings';
+import Layout from './components/布局';
+import Dashboard from './pages/仪表盘';
+import StrategyConfig from './pages/策略配置';
+import BacktestResults from './pages/回测结果';
+import Optimization from './pages/参数优化';
+import LiveMonitor from './pages/实时监控';
+import DataManagement from './pages/数据管理';
+import Settings from './pages/用户设置';
 
 function App() {
   return (

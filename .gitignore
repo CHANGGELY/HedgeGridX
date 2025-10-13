@@ -63,6 +63,10 @@ MANIFEST
 *.rar
 *.7z
 
+# Installers / Executables (keep out of VCS)
+*.exe
+installers/
+
 # Environment variables
 .env.local
 .env.development.local

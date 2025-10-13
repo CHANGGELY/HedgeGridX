@@ -1,0 +1,27 @@
+import { Router, type Request, type Response } from 'express';
+import fs from 'fs';
+import path from 'path';
+
+const router = Router();
+
+/**
+ * GET /api/backtest/result
+ * 返回最近一次回测结果 JSON。
+ * 文件路径可通过环境变量 BACKTEST_RESULT_PATH 指定，
+ * 默认读取项目根目录下 backtest_result.json。
+ */
+router.get('/result', async (_req: Request, res: Response) => {
+  try {
+    const resultPath = process.env.BACKTEST_RESULT_PATH || path.resolve(process.cwd(), 'backtest_result.json');
+    if (!fs.existsSync(resultPath)) {
+      return res.status(404).json({ success: false, error: 'Result file not found' });
+    }
+    const json = await fs.promises.readFile(resultPath, 'utf-8');
+    return res.status(200).json({ success: true, data: JSON.parse(json) });
+  } catch (err) {
+    console.error('[Backtest API] read error', err);
+    return res.status(500).json({ success: false, error: 'Failed to read backtest result' });
+  }
+});
+
+export default router;

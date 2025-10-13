@@ -19,6 +19,9 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // 允许中文标识符命名（不强制英文命名规范）
+      '@typescript-eslint/naming-convention': 'off',
+      camelcase: 'off',
       'react-refresh/only-export-components': [
         'warn',
         { allowConstantExport: true },

@@ -22,7 +22,7 @@ import {
   Clock,
   Activity
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, Button, Badge, Select, Input, Progress } from '../components/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, Badge, Select, Input, Progress } from '../components/用户界面/索引';
 import { useOptimizationStore, useStrategyStore } from '../stores';
 import { OptimizationResult, ParameterRange, ParameterCombination, StrategyType, TimeFrame } from '../types';
 

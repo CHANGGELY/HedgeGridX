@@ -25,7 +25,7 @@ import {
   Wifi,
   WifiOff
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, Button, Badge, Progress } from '../components/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, Badge, Progress } from '../components/用户界面/索引';
 
 // 模拟数据源配置
 const mockDataSources = [

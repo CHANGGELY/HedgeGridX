@@ -26,7 +26,7 @@ import {
   Eye,
   EyeOff
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, Button, Badge, Select } from '../components/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, Badge, Select } from '../components/用户界面/索引';
 import { useLiveMonitorStore } from '../stores';
 import { Position, TradingSignal, SignalType } from '../types';
 

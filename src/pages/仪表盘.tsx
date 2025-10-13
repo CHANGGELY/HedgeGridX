@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, memo } from 'react';
 import {
   LineChart,
   Line,
@@ -81,15 +81,15 @@ const recentTrades = [
 ];
 
 const Dashboard: React.FC = () => {
-  const { loadDashboardData } = useDashboardStore();
-  const { loadStrategies } = useStrategyStore();
+  const loadDashboardData = useDashboardStore(s => s.loadDashboardData);
+  const loadStrategies = useStrategyStore(s => s.loadStrategies);
 
   useEffect(() => {
     loadDashboardData();
     loadStrategies();
   }, [loadDashboardData, loadStrategies]);
 
-  const StatCard = ({ title, value, change, icon: Icon, trend }: {
+  const StatCard = memo(({ title, value, change, icon: Icon, trend }: {
     title: string;
     value: string;
     change: string;
@@ -121,7 +121,7 @@ const Dashboard: React.FC = () => {
         </div>
       </CardContent>
     </Card>
-  );
+  ));
 
   return (
     <div className="space-y-6">

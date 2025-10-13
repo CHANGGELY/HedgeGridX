@@ -119,12 +119,10 @@ const mockSignals: TradingSignal[] = [
 ];
 
 const LiveMonitor: React.FC = () => {
-  const { 
-    isConnected, 
-    startMonitoring,
-    stopMonitoring,
-    toggleNotifications
-  } = useLiveMonitorStore();
+  const isConnected = useLiveMonitorStore(s => s.isConnected);
+  const startMonitoring = useLiveMonitorStore(s => s.startMonitoring);
+  const stopMonitoring = useLiveMonitorStore(s => s.stopMonitoring);
+  const toggleNotifications = useLiveMonitorStore(s => s.toggleNotifications);
   
   // const [selectedStrategy, setSelectedStrategy] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'price' | 'pnl' | 'signals'>('price');

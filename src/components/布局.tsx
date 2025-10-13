@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   BarChart3,
   Settings,
@@ -14,10 +14,12 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Button } from './ui';
+import { useSettingsStore } from '../stores';
 
 interface NavItem {
   name: string;
-  href: string;
+  englishHref: string;
+  chineseHref: string;
   icon: React.ComponentType<{ className?: string }>;
   description: string;
 }
@@ -25,43 +27,50 @@ interface NavItem {
 const navigation: NavItem[] = [
   {
     name: '仪表板',
-    href: '/',
+    englishHref: '/',
+    chineseHref: '/仪表盘',
     icon: BarChart3,
     description: '策略概览和实时监控'
   },
   {
     name: '策略配置',
-    href: '/策略配置',
+    englishHref: '/strategy-config',
+    chineseHref: '/策略配置',
     icon: Settings,
     description: '创建和配置交易策略'
   },
   {
     name: '回测结果',
-    href: '/回测结果',
+    englishHref: '/backtest-results',
+    chineseHref: '/回测结果',
     icon: TrendingUp,
     description: '查看策略回测表现'
   },
   {
     name: '参数优化',
-    href: '/参数优化',
+    englishHref: '/optimization',
+    chineseHref: '/参数优化',
     icon: Zap,
     description: '优化策略参数'
   },
   {
     name: '实时监控',
-    href: '/实时监控',
+    englishHref: '/live-monitor',
+    chineseHref: '/实时监控',
     icon: Monitor,
     description: '实时价格和信号监控'
   },
   {
     name: '数据管理',
-    href: '/数据管理',
+    englishHref: '/data-management',
+    chineseHref: '/数据管理',
     icon: Database,
     description: '管理历史数据'
   },
   {
     name: '用户设置',
-    href: '/用户设置',
+    englishHref: '/settings',
+    chineseHref: '/用户设置',
     icon: User,
     description: '个人偏好设置'
   }
@@ -70,12 +79,40 @@ const navigation: NavItem[] = [
 const Layout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
-  const isActive = (href: string) => {
-    if (href === '/') {
-      return location.pathname === '/';
+  const language = useSettingsStore(s => s.settings.language);
+  const updateSettings = useSettingsStore(s => s.updateSettings);
+
+  const pathMap: { en: string; zh: string }[] = [
+    { en: '/', zh: '/仪表盘' },
+    { en: '/strategy-config', zh: '/策略配置' },
+    { en: '/backtest-results', zh: '/回测结果' },
+    { en: '/optimization', zh: '/参数优化' },
+    { en: '/live-monitor', zh: '/实时监控' },
+    { en: '/data-management', zh: '/数据管理' },
+    { en: '/settings', zh: '/用户设置' },
+  ];
+
+  const mapPath = (p: string, target: 'zh' | 'en') => {
+    for (const m of pathMap) {
+      if (p === m.en) return target === 'zh' ? m.zh : m.en;
+      if (p === m.zh) return target === 'zh' ? m.zh : m.en;
+      if (p.startsWith(m.en + '/')) return target === 'zh' ? p.replace(m.en, m.zh) : p;
+      if (p.startsWith(m.zh + '/')) return target === 'zh' ? p : p.replace(m.zh, m.en);
     }
-    return location.pathname.startsWith(href);
+    return p;
+  };
+
+  const getHref = (item: NavItem) => (language === 'zh' ? item.chineseHref : item.englishHref);
+
+  const isActive = (item: NavItem) => {
+    const en = item.englishHref;
+    const zh = item.chineseHref;
+    if (en === '/') {
+      return location.pathname === '/' || location.pathname === zh;
+    }
+    return location.pathname.startsWith(en) || location.pathname.startsWith(zh);
   };
 
   return (
@@ -122,12 +159,12 @@ const Layout: React.FC = () => {
             <ul className="space-y-2">
               {navigation.map((item) => {
                 const Icon = item.icon;
-                const active = isActive(item.href);
+                const active = isActive(item);
                 
                 return (
                   <li key={item.name}>
                     <Link
-                      to={item.href}
+                      to={getHref(item)}
                       className={cn(
                         'group flex items-center rounded-lg px-3 py-3 text-sm font-medium transition-all duration-200',
                         active
@@ -189,10 +226,10 @@ const Layout: React.FC = () => {
               </Button>
               <div>
                 <h2 className="text-lg font-semibold text-slate-900">
-                  {navigation.find(item => isActive(item.href))?.name || '仪表板'}
+                  {navigation.find(item => isActive(item))?.name || '仪表板'}
                 </h2>
                 <p className="text-sm text-slate-600">
-                  {navigation.find(item => isActive(item.href))?.description || '策略概览和实时监控'}
+                  {navigation.find(item => isActive(item))?.description || '策略概览和实时监控'}
                 </p>
               </div>
             </div>
@@ -202,6 +239,18 @@ const Layout: React.FC = () => {
                 <div className="h-2 w-2 rounded-full bg-green-500"></div>
                 <span>实时连接</span>
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const target = (language === 'zh' ? 'en' : 'zh') as 'zh' | 'en';
+                  const mapped = mapPath(location.pathname, target);
+                  updateSettings({ language: target });
+                  if (mapped !== location.pathname) navigate(mapped);
+                }}
+              >
+                {language === 'zh' ? 'English path' : '中文路径'}
+              </Button>
               <Button variant="outline" size="sm">
                 <User className="h-4 w-4 mr-2" />
                 用户中心

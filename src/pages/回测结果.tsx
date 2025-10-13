@@ -109,8 +109,11 @@ const monthlyReturns = [
 ];
 
 const BacktestResults: React.FC = () => {
-  const { currentResult, isRunning, progress, fetchResult } = useBacktestStore();
-  const { strategies } = useStrategyStore();
+  const currentResult = useBacktestStore(s => s.currentResult);
+  const isRunning = useBacktestStore(s => s.isRunning);
+  const progress = useBacktestStore(s => s.progress);
+  const fetchResult = useBacktestStore(s => s.fetchResult);
+  const strategies = useStrategyStore(s => s.strategies);
   const [selectedStrategy, setSelectedStrategy] = useState<string>('');
   const [viewMode, setViewMode] = useState<'equity' | 'drawdown' | 'monthly'>('equity');
   const [result, setResult] = useState<BacktestResult>(mockBacktestResult);

@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { Plus, Save, Play, Copy, Trash2, Settings, Info } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, Button, Input, Select, Badge } from '../components/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, Input, Select, Badge } from '../components/用户界面/索引';
 import { StrategyType, TimeFrame, StrategyConfig as IStrategyConfig } from '../types';
 import { useStrategyStore } from '../stores';
 import toast from 'react-hot-toast';
 
 const StrategyConfig: React.FC = () => {
-  const { strategies, addStrategy, updateStrategy, deleteStrategy } = useStrategyStore();
+  const strategies = useStrategyStore(s => s.strategies);
+  const addStrategy = useStrategyStore(s => s.addStrategy);
+  const updateStrategy = useStrategyStore(s => s.updateStrategy);
+  const deleteStrategy = useStrategyStore(s => s.deleteStrategy);
   const [selectedStrategy, setSelectedStrategy] = useState<IStrategyConfig | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<IStrategyConfig>>({

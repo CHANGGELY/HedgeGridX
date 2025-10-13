@@ -1,6 +1,6 @@
 /**
- * This is a user authentication API route demo.
- * Handle user registration, login, token management, etc.
+ * 用户身份验证 API 路由示例
+ * 处理用户注册、登录、令牌管理等
  */
 import express from 'express';
 
@@ -8,27 +8,27 @@ import express from 'express';
 const router = express.Router();
 
 /**
- * User Login
+ * 用户注册
  * POST /api/auth/register
  */
 router.post('/register', async (/* _req: Request, _res: Response */): Promise<void> => {
-    // TODO: Implement register logic
+    // TODO: 实现注册逻辑
   });
 
 /**
- * User Login
+ * 用户登录
  * POST /api/auth/login
  */
 router.post('/login', async (/* _req: Request, _res: Response */): Promise<void> => {
-    // TODO: Implement login logic
+    // TODO: 实现登录逻辑
   });
 
 /**
- * User Logout
+ * 用户登出
  * POST /api/auth/logout
  */
 router.post('/logout', async (/* _req: Request, _res: Response */): Promise<void> => {
-    // TODO: Implement logout logic
+    // TODO: 实现登出逻辑
   });
 
 export default router;

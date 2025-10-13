@@ -30,32 +30,34 @@ app.use('/api/auth', authRoutes);
 app.use('/api/backtest', backtestRoutes);
 
 /**
- * health
+ * 健康检查
  */
 app.use('/api/health', (_req: Request, res: Response): void => {
   res.status(200).json({
     success: true,
-    message: 'ok'
+    message: '服务正常运行'
   });
 });
 
 /**
- * error handler middleware
+ * 错误处理中间件
  */
 app.use((error: Error, _req: Request, res: Response) => {
+  console.error('服务器内部错误:', error);
   res.status(500).json({
     success: false,
-    error: 'Server internal error'
+    error: '服务器内部错误，请稍后重试'
   });
 });
 
 /**
- * 404 handler
+ * 404 处理
  */
 app.use((req: Request, res: Response) => {
+  console.warn(`API 路径未找到: ${req.method} ${req.path}`);
   res.status(404).json({
     success: false,
-    error: 'API not found'
+    error: 'API 路径不存在'
   });
 });
 

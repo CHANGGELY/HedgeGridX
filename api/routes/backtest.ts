@@ -14,13 +14,13 @@ router.get('/result', async (_req: Request, res: Response) => {
   try {
     const resultPath = process.env.BACKTEST_RESULT_PATH || path.resolve(process.cwd(), 'backtest_result.json');
     if (!fs.existsSync(resultPath)) {
-      return res.status(404).json({ success: false, error: 'Result file not found' });
+      return res.status(404).json({ success: false, error: '回测结果文件不存在，请先运行回测策略' });
     }
     const json = await fs.promises.readFile(resultPath, 'utf-8');
     return res.status(200).json({ success: true, data: JSON.parse(json) });
   } catch (err) {
-    console.error('[Backtest API] read error', err);
-    return res.status(500).json({ success: false, error: 'Failed to read backtest result' });
+    console.error('[回测 API] 读取错误:', err);
+    return res.status(500).json({ success: false, error: '读取回测结果失败，请检查文件格式' });
   }
 });
 

@@ -22,7 +22,7 @@ import {
   Settings,
   BarChart3
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, Button, Badge } from '../components/ui';
+import { Card, CardContent, CardHeader, CardTitle, Button, Badge } from '../components/用户界面/索引';
 import { useDashboardStore, useStrategyStore } from '../stores';
 
 // 模拟数据

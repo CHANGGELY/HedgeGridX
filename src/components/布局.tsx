@@ -31,37 +31,37 @@ const navigation: NavItem[] = [
   },
   {
     name: '策略配置',
-    href: '/strategy-config',
+    href: '/策略配置',
     icon: Settings,
     description: '创建和配置交易策略'
   },
   {
     name: '回测结果',
-    href: '/backtest-results',
+    href: '/回测结果',
     icon: TrendingUp,
     description: '查看策略回测表现'
   },
   {
     name: '参数优化',
-    href: '/optimization',
+    href: '/参数优化',
     icon: Zap,
     description: '优化策略参数'
   },
   {
     name: '实时监控',
-    href: '/live-monitor',
+    href: '/实时监控',
     icon: Monitor,
     description: '实时价格和信号监控'
   },
   {
     name: '数据管理',
-    href: '/data-management',
+    href: '/数据管理',
     icon: Database,
     description: '管理历史数据'
   },
   {
     name: '用户设置',
-    href: '/settings',
+    href: '/用户设置',
     icon: User,
     description: '个人偏好设置'
   }

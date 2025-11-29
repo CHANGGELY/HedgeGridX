@@ -1,0 +1,42 @@
+[project]
+name = "perp-kline-backtest"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+# 保持旧键，兼容现有版本；未来可迁移到 [tool.ruff.lint]
+target-version = "py311"
+fix = true
+select = ["E", "F", "I", "B"]
+ignore = [
+    "E501",  # 长行忽略
+    "E722",  # bare except（现阶段大量存在，后续渐进修复）
+    "E741",  # l/I/O 模糊命名（已局部修复，余下逐步改）
+    "E702",  # 单行多语句（局部改，余下逐步改）
+    "B904",  # raise from（已在关键路径改）
+    "B905",  # zip(strict=)（已在涉及处改）
+    "F841",  # 未使用局部变量（逐步清理）
+    "B007",  # 未使用循环变量（逐步清理）
+]
+exclude = ["venv", ".venv", "cache", "K线data", "工具", "tools"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unreachable = true
+no_implicit_optional = true
+check_untyped_defs = true
+files = ["fastapi_backend"]
+exclude = "(fastapi_backend/主程序.py)"
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-q"
+testpaths = ["tests"]

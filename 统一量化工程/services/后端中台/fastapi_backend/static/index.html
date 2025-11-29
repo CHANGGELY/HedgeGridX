@@ -1,0 +1,1852 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>永续合约K线回测系统 - Web版</title>
+    <!-- 内联站点图标，避免浏览器请求 /favicon.ico 造成 404 -->
+    <link rel="icon" type="image/svg+xml" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="%23764ba2"/><path d="M12 44 L24 24 L36 40 L52 20" stroke="white" stroke-width="6" fill="none" stroke-linecap="round"/></svg>'/>
+    <!-- 轻量级图表库 -->
+    <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js"></script>
+    <!-- Chart.js for 资金曲线 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .content {
+            padding: 20px;
+        }
+        
+        .controls-panel {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 5px solid #667eea;
+        }
+        
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        
+        .form-group input, .form-group select {
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* 交易标记开关样式 */
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 6px;
+            transition: background-color 0.2s;
+        }
+
+        .checkbox-label:hover {
+            background-color: rgba(102, 126, 234, 0.1);
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            margin: 0;
+            width: 16px;
+            height: 16px;
+        }
+
+        .marker-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            border: 1px solid #ccc;
+        }
+
+        .form-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .form-section h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5a6fd8;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .charts-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .kline-container {
+            min-height: 520px;
+        }
+
+        .equity-container {
+            min-height: 270px;
+        }
+        
+        .chart-header {
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chart-header h3 {
+            color: #333;
+            margin: 0;
+        }
+
+        /* 🎯 时间周期选择器样式 */
+        .timeframe-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .timeframe-selector select {
+            background: #2b2b2b;
+            color: #f0b90b;
+            border: 1px solid #f0b90b;
+            border-radius: 4px;
+            padding: 5px 10px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .timeframe-selector select:hover {
+            background: #3b3b3b;
+        }
+
+        .timeframe-selector select:focus {
+            box-shadow: 0 0 5px rgba(240, 185, 11, 0.5);
+        }
+        
+        .chart-info {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        #klineChart {
+            width: 100%;
+            height: 500px;
+        }
+
+        #equityChart {
+            width: 100%;
+            height: 250px;
+        }
+        
+        .progress-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        /* 进度条条纹与动画，更直观的进度反馈 */
+        .progress-fill.striped {
+            background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.25) 0, rgba(255,255,255,0.25) 10px, transparent 10px, transparent 20px),
+                              linear-gradient(90deg, #667eea, #764ba2);
+            background-size: 40px 40px, 100% 100%;
+        }
+        @keyframes progressStripe {
+            from { background-position: 0 0, 0 0; }
+            to   { background-position: 40px 0, 0 0; }
+        }
+        .progress-fill.animated {
+            animation: progressStripe 1s linear infinite;
+        }
+        .progress-fill.ok {
+            background: linear-gradient(90deg, #0ecb81, #2ecc71);
+        }
+        .progress-fill.error {
+            background: linear-gradient(90deg, #f6465d, #e74c3c);
+        }
+        
+        .progress-text {
+            text-align: center;
+            font-weight: bold;
+            color: #333;
+        }
+        .progress-log {
+            max-height: 140px;
+            overflow-y: auto;
+            background: #f9f9fb;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            font-size: 12px;
+            padding: 8px;
+            margin-top: 8px;
+            color: #333;
+        }
+        /* 日志行级别高亮，便于快速识别关键信息 */
+        .progress-log .log-line {
+            padding: 2px 4px;
+            border-left: 3px solid transparent;
+            margin-bottom: 2px;
+            white-space: pre-wrap;
+        }
+        .progress-log .log-info {
+            color: #333;
+        }
+        .progress-log .log-stage {
+            color: #0056b3;
+            border-left-color: #a3d5ff;
+            background: #f0f7ff;
+        }
+        .progress-log .log-warn {
+            color: #856404;
+            border-left-color: #ffeeba;
+            background: #fff8e1;
+            font-weight: 600;
+        }
+        .progress-log .log-error {
+            color: #721c24;
+            border-left-color: #f5c6cb;
+            background: #f9e2e3;
+            font-weight: 700;
+        }
+        .progress-log .log-ok {
+            color: #155724;
+            border-left-color: #c3e6cb;
+            background: #e6ffed;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .results-panel {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .metric-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .metric-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .metric-value.positive {
+            color: #28a745;
+        }
+        
+        .metric-value.negative {
+            color: #dc3545;
+        }
+        
+        .server-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+        
+        .server-status.online {
+            background: rgba(40, 167, 69, 0.9);
+        }
+        
+        .server-status.offline {
+            background: rgba(220, 53, 69, 0.9);
+        }
+    </style>
+</head>
+<body>
+    <div class="server-status" id="serverStatus">🔄 检查服务器状态...</div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>📊 永续合约K线回测系统</h1>
+            <p id="originInfo">专业Web版量化交易回测平台 | 同源初始化中...</p>
+        </div>
+        
+        <div class="content">
+            <!-- 控制面板 -->
+            <div class="controls-panel">
+                <h3>🎛️ 控制面板</h3>
+                <div class="controls-grid">
+                    <div class="form-group">
+                        <label>交易对</label>
+                        <select id="symbol">
+                            <option value="ETHUSDT">ETHUSDT</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>开始日期</label>
+                        <input type="date" id="startDate" value="2025-05-15" min="2019-11-01" max="2025-06-15">
+                    </div>
+                    <div class="form-group">
+                        <label>结束日期</label>
+                        <input type="date" id="endDate" value="2025-06-15" min="2019-11-01" max="2025-06-15">
+                    </div>
+                    <div class="form-group">
+                        <label>初始资金 (USDT)</label>
+                        <input type="number" id="initialCapital" value="600" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>杠杆倍数</label>
+                        <input type="number" id="leverage" value="125" min="1" max="125">
+                    </div>
+                    <div class="form-group">
+                        <label>买单价差</label>
+                        <input type="number" id="bidSpread" value="0.002" step="0.0001" title="买单价差比例">
+                    </div>
+                    <div class="form-group">
+                        <label>卖单价差</label>
+                        <input type="number" id="askSpread" value="0.002" step="0.0001" title="卖单价差比例">
+                    </div>
+                    <div class="form-group">
+                        <label>最大仓位比例</label>
+                        <input type="number" id="maxPositionRatio" value="0.8" step="0.01" title="最大仓位价值不超过权益的比例">
+                    </div>
+                    <div class="form-group">
+                        <label>订单刷新时间(秒)</label>
+                        <input type="number" id="orderRefreshTime" value="30" step="1" title="订单刷新间隔">
+                    </div>
+                    <div class="form-group">
+                        <label>启用动态下单量</label>
+                        <input type="checkbox" id="useDynamicOrderSize" checked title="是否使用动态下单量">
+                    </div>
+                    <div class="form-group">
+                        <label>Maker手续费率</label>
+                        <input type="number" id="makerFee" value="0.0002" step="0.0001" title="Maker订单手续费率">
+                    </div>
+                    <div class="form-group">
+                        <label>Taker手续费率</label>
+                        <input type="number" id="takerFee" value="0.0005" step="0.0001" title="Taker订单手续费率">
+                    </div>
+                    <div class="form-group">
+                        <label>启用返佣</label>
+                        <input type="checkbox" id="useFeeRebate" checked title="是否启用手续费返佣">
+                    </div>
+                    <div class="form-group">
+                        <label>返佣比例</label>
+                        <input type="number" id="rebateRate" value="0.30" step="0.01" min="0" max="1" title="手续费返佣比例 (0-1)">
+                    </div>
+                </div>
+
+                <!-- 交易标记开关 -->
+                <div class="form-section">
+                    <h4>🎯 交易标记显示</h4>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="showBuyLong" checked>
+                            <span class="marker-color" style="background-color: #00ff00;"></span>
+                            开多标记
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="showSellShort" checked>
+                            <span class="marker-color" style="background-color: #ff0000;"></span>
+                            开空标记
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="showSellLong" checked>
+                            <span class="marker-color" style="background-color: #ffaa00;"></span>
+                            平多标记
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="showBuyShort" checked>
+                            <span class="marker-color" style="background-color: #00aaff;"></span>
+                            平空标记
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="loadKlineData()">📊 加载K线数据</button>
+                    <button class="btn btn-primary" onclick="runBacktest()" id="backtestBtn">🚀 开始回测</button>
+                    <button class="btn btn-secondary" onclick="clearCharts()">🗑️ 清空图表</button>
+                    <label style="margin-left:auto;display:flex;align-items:center;gap:6px;">
+                        <input type="checkbox" id="devModeToggle"> 开发者模式
+                    </label>
+                </div>
+            </div>
+            
+            <!-- 进度显示 -->
+            <div class="progress-container" id="progressContainer">
+                <h3>⏳ 回测进度</h3>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">准备中...</div>
+                <div class="progress-log" id="progressLog" style="display:none"></div>
+                <div class="status hidden" id="status"></div>
+            </div>
+            
+            <!-- 图表容器 -->
+            <div class="charts-container">
+                <!-- K线图表 -->
+                <div class="chart-container kline-container">
+                    <div class="chart-header">
+                        <h3>📈 K线图表</h3>
+                        <!-- 🎯 时间周期选择器 - 移到图表内部 -->
+                        <div class="timeframe-selector">
+                            <select id="timeframe">
+                                <option value="1m" selected>1分钟</option>
+                                <option value="1h">1小时</option>
+                                <option value="1d">1天</option>
+                                <option value="1M">1月</option>
+                            </select>
+                        </div>
+                        <div class="chart-info" id="klineInfo">
+                            数据范围: 2019-11-01 至 2025-06-15 | 请选择时间范围加载数据
+                        </div>
+                        <!-- 🎯 K线悬停信息显示 -->
+                        <div id="klineTooltip" style="display: none; position: absolute; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; font-size: 12px; z-index: 1000; pointer-events: none;">
+                            <div id="tooltipContent"></div>
+                        </div>
+                    </div>
+                    <div id="klineChart" style="position: relative;"></div>
+                </div>
+
+                <!-- 资金曲线图 -->
+                <div class="chart-container equity-container">
+                    <div class="chart-header">
+                        <h3>💰 资金曲线</h3>
+                        <div class="chart-info" id="equityInfo">
+                            等待回测数据...
+                        </div>
+                    </div>
+                    <div id="equityChart"></div>
+                </div>
+            </div>
+            
+            <!-- 回测结果 -->
+            <div class="results-panel hidden" id="resultsPanel">
+                <h3>📊 回测结果</h3>
+                <div class="metrics-grid" id="metricsGrid">
+                    <!-- 动态生成指标卡片 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let klineChart = null;
+        let candlestickSeries = null;
+        let equityChart = null;
+        let equityLineSeries = null;
+        let currentKlineData = null;
+        let progressInterval = null;
+        let lastLogLength = 0;
+        let tradeMarkers = []; // 存储交易标记
+        let progressMessages = []; // 进度消息日志
+        let isFinished = false; // 完成态：到达100%后不再渲染普通日志
+        const MAX_LOG_LINES = 200; // 日志上限
+        const BACKEND_URL = window.location.origin;
+        // 日志级别识别与统一渲染
+        function 识别日志级别(line) {
+            const t = (line || '').toLowerCase();
+            if (!line) return 'log-info';
+            if (t.includes('error') || t.includes('异常') || t.includes('失败') || t.includes('traceback')) return 'log-error';
+            if (t.includes('warning') || t.includes('警告') || t.includes('清算') || t.includes('爆仓')) return 'log-warn';
+            if (t.includes('success') || t.includes('成功') || t.includes('完成')) return 'log-ok';
+            if (t.includes('progress') || t.includes('阶段') || t.startsWith('阶段') || t.includes('初始化') || t.includes('开始')) return 'log-stage';
+            return 'log-info';
+        }
+        function 追加日志行(text, explicitClass = null) {
+            const el = document.getElementById('progressLog');
+            if (!el || !text) return;
+            try {
+                const t = String(text);
+                const m = t.match(/回测进度:\s*(\d+)\%/);
+                if (m) {
+                    const pct = Math.max(0, Math.min(100, parseInt(m[1], 10)));
+                    updateProgress(pct, pct >= 100 ? '回测完成' : '正在回测...');
+                    return;
+                }
+            } catch (_) {}
+            const cls = explicitClass || 识别日志级别(text);
+            // 完成后仅保留错误行，其余直接丢弃，避免刷屏
+            if (isFinished && cls !== 'log-error') return;
+            // 基础降噪：丢弃疑似大块JSON/纯数字串
+            const s = String(text);
+            const looksJsonBlob = s.length > 300 && /[\{\}\[\]]/.test(s);
+            const tooNumeric = /^[\d\s,.:+\-eE\[\]\{\}\"']+$/.test(s);
+            if (looksJsonBlob || tooNumeric) return;
+            const safe = s.replace(/[<>]/g, ch => ({'<':'&lt;','>':'&gt;'}[ch]));
+            const row = `<div class="log-line ${cls}">${safe}</div>`;
+            el.insertAdjacentHTML('beforeend', row);
+            // 保留最近 MAX_LOG_LINES 行
+            while (el.children.length > MAX_LOG_LINES) {
+                el.removeChild(el.firstElementChild);
+            }
+            el.scrollTop = el.scrollHeight;
+        }
+
+        // 全局错误监听：将未捕获错误与 Promise 拒绝写入日志面板
+        (function(){
+            const report = (prefix, err) => {
+                try {
+                    const msg = (err && err.message) ? err.message : String(err);
+                    追加日志行(`${prefix}: ${msg}`, 'log-error');
+                } catch (_) {
+                    // 安全兜底
+                }
+            };
+            window.addEventListener('error', (e) => {
+                const tgt = e.target;
+                if (tgt && tgt.tagName) {
+                    const url = tgt.src || tgt.href || tgt.currentSrc || '';
+                    追加日志行(`资源加载错误: ${tgt.tagName} ${url || '(未知URL)'}`, 'log-warn');
+                } else {
+                    report('前端错误', e.error || e.message || e);
+                }
+            });
+            window.addEventListener('unhandledrejection', (e) => {
+                report('未处理的Promise拒绝', e.reason || e);
+            });
+        })();
+        
+        // 全局 fetch 包装：记录非 2xx 的请求与失败，便于定位 404 来源
+        (function(){
+            const 原始fetch = window.fetch;
+            window.fetch = async function(...args) {
+                const [input] = args;
+                try {
+                    const res = await 原始fetch.apply(this, args);
+                    if (!res.ok) {
+                        const url = res.url || (typeof input === 'string' ? input : (input && input.url) || '');
+                        追加日志行(`HTTP错误: ${res.status} ${res.statusText} ${url}`, 'log-warn');
+                        try { console.warn('HTTP错误', res.status, res.statusText, url); } catch(_){}
+                    }
+                    return res;
+                } catch (err) {
+                    const url = (typeof input === 'string' ? input : (input && input.url) || '');
+                    追加日志行(`Fetch失败: ${url} - ${String((err && err.message) || err)}`, 'log-error');
+                    try { console.error('Fetch失败', url, err); } catch(_){}
+                    throw err;
+                }
+            };
+        })();
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 设置正确的日期范围（数据范围：2019-11-01 至 2025-06-15）
+            // 默认使用最近一个月的数据
+            document.getElementById('endDate').value = '2025-06-15';  // 数据截止日期
+            document.getElementById('startDate').value = '2025-05-15'; // 最近一个月
+
+            // 动态显示同源信息
+            const originInfoEl = document.getElementById('originInfo');
+            if (originInfoEl) {
+                originInfoEl.textContent = `专业Web版量化交易回测平台 | 同源: ${window.location.origin}`;
+            }
+
+            // 检查服务器状态
+            checkServerStatus();
+            setInterval(checkServerStatus, 30000); // 每30秒检查一次
+
+            // 开发者模式显隐日志面板
+            const devToggle = document.getElementById('devModeToggle');
+            if (devToggle) {
+                devToggle.addEventListener('change', () => {
+                    document.getElementById('progressLog').style.display = devToggle.checked ? 'block' : 'none';
+                });
+            }
+
+            // 添加交易标记开关事件监听器
+            ['showBuyLong', 'showSellShort', 'showSellLong', 'showBuyShort'].forEach(id => {
+                document.getElementById(id).addEventListener('change', updateTradeMarkers);
+            });
+
+            // 🎯 添加时间周期选择器事件监听器
+            document.getElementById('timeframe').addEventListener('change', function() {
+                const timeframe = this.value;
+                console.log(`时间周期切换到: ${timeframe}`);
+
+                // 如果已经加载了K线数据，重新加载
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+
+                if (startDate && endDate) {
+                    loadKlineData(startDate, endDate, timeframe);
+                }
+            });
+        });
+        
+        // 检查服务器状态
+        async function checkServerStatus() {
+            const statusElement = document.getElementById('serverStatus');
+            try {
+                const response = await fetch(`${BACKEND_URL}/health`);
+                if (response.ok) {
+                    statusElement.textContent = '🟢 后端服务器在线';
+                    statusElement.className = 'server-status online';
+                } else {
+                    throw new Error('服务器响应异常');
+                }
+            } catch (error) {
+                statusElement.textContent = '🔴 后端服务器离线';
+                statusElement.className = 'server-status offline';
+            }
+        }
+
+        // 加载K线数据
+        async function loadKlineData(customStartDate = null, customEndDate = null, customTimeframe = null) {
+            try {
+                const symbol = document.getElementById('symbol').value;
+                const startDate = customStartDate || document.getElementById('startDate').value;
+                const endDate = customEndDate || document.getElementById('endDate').value;
+                const timeframe = customTimeframe || document.getElementById('timeframe').value;
+
+                if (!startDate || !endDate) {
+                    alert('请选择开始和结束日期');
+                    return;
+                }
+
+                // 更新图表信息
+                const timeframeText = {
+                    '1m': '1分钟',
+                    '1h': '1小时',
+                    '1d': '1天',
+                    '1M': '1月'
+                }[timeframe] || timeframe;
+                document.getElementById('klineInfo').textContent = `正在加载 ${symbol} ${startDate} 至 ${endDate} 的${timeframeText}K线数据...`;
+
+                // 请求K线数据
+                const response = await fetch(`${BACKEND_URL}/klines?symbol=${symbol}&start_date=${startDate}&end_date=${endDate}&timeframe=${timeframe}`);
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.error || '获取K线数据失败');
+                }
+
+                currentKlineData = data;
+                displayKlineChart(data);
+
+                // 更新图表信息
+                const sourceText = data.source === 'cache' ? '⚡缓存' : '🔄实时';
+                document.getElementById('klineInfo').textContent =
+                    `${symbol} | ${startDate} 至 ${endDate} | ${timeframeText} | 共 ${data.klines.length} 条K线数据 | ${sourceText}`;
+
+            } catch (error) {
+                console.error('加载K线数据失败:', error);
+                alert(`加载K线数据失败: ${error.message}`);
+                document.getElementById('klineInfo').textContent = '数据加载失败';
+            }
+        }
+
+        // 显示K线图表
+        function displayKlineChart(data) {
+            try {
+                const chartContainer = document.getElementById('klineChart');
+                chartContainer.innerHTML = ''; // 清空容器
+
+                // 创建轻量级图表 - 币安风格
+                klineChart = LightweightCharts.createChart(chartContainer, {
+                    width: chartContainer.clientWidth,
+                    height: 600,
+                    layout: {
+                        backgroundColor: '#1e1e1e',  // 深色背景
+                        textColor: '#d1d4dc',       // 浅色文字
+                    },
+                    grid: {
+                        vertLines: {
+                            color: '#2a2a2a',
+                            style: 1,
+                        },
+                        horzLines: {
+                            color: '#2a2aa',
+                            style: 1,
+                        },
+                    },
+                    crosshair: {
+                        mode: LightweightCharts.CrosshairMode.Normal,
+                        vertLine: {
+                            color: '#758696',
+                            width: 1,
+                            style: 3, // 虚线
+                            labelBackgroundColor: '#4c525e',
+                        },
+                        horzLine: {
+                            color: '#758696',
+                            width: 1,
+                            style: 3, // 虚线
+                            labelBackgroundColor: '#4c525e',
+                        },
+                    },
+                    rightPriceScale: {
+                        borderColor: '#485158',
+                        textColor: '#d1d4dc',
+                    },
+                    timeScale: {
+                        borderColor: '#485158',
+                        textColor: '#d1d4dc',
+                        timeVisible: true,
+                        secondsVisible: false,
+                    },
+                });
+
+                // 添加K线数据 - 币安风格颜色
+                candlestickSeries = klineChart.addCandlestickSeries({
+                    upColor: '#0ecb81',      // 绿色（涨）
+                    downColor: '#f6465d',    // 红色（跌）
+                    borderVisible: false,
+                    wickUpColor: '#0ecb81',
+                    wickDownColor: '#f6465d',
+                });
+
+                // 转换数据格式
+                const klineData = data.klines.map(kline => ({
+                    time: kline.timestamp,
+                    open: kline.open,
+                    high: kline.high,
+                    low: kline.low,
+                    close: kline.close,
+                }));
+
+                candlestickSeries.setData(klineData);
+
+                // 🎯 添加鼠标悬停信息显示
+                setupKlineCrosshairHandler(klineChart, candlestickSeries, data.klines);
+
+                // 自适应大小
+                window.addEventListener('resize', () => {
+                    klineChart.applyOptions({ width: chartContainer.clientWidth });
+                });
+
+                console.log(`K线图表已加载，共 ${klineData.length} 条数据`);
+
+            } catch (error) {
+                console.error('显示K线图失败:', error);
+                document.getElementById('klineChart').innerHTML =
+                    `<p style="text-align: center; color: #dc3545; padding: 50px;">K线图加载失败: ${error.message}</p>`;
+            }
+        }
+
+        // 显示资金曲线图（强化鲁棒性与日志）
+        function displayEquityChart(equityHistory) {
+            try {
+                const chartContainer = document.getElementById('equityChart');
+
+                // 输入校验
+                if (!Array.isArray(equityHistory)) {
+                    console.warn('资金曲线为空或格式错误：非数组');
+                    document.getElementById('equityInfo').textContent = '资金曲线为空或格式错误';
+                    chartContainer.innerHTML = `<p style="text-align:center;color:#6c757d;padding:40px;">没有可显示的资金曲线数据</p>`;
+                    return;
+                }
+                // 过滤非法点（负时间/非数字）
+                const cleaned = equityHistory.filter((p) => {
+                    if (!p || p.length < 2) return false;
+                    const t = Number(p[0]);
+                    const v = Number(p[1]);
+                    return Number.isFinite(t) && Number.isFinite(v) && t >= 0 && t <= 2147483647;
+                });
+                if (cleaned.length === 0) {
+                    console.warn('资金曲线数据点为 0，可能是时间戳单位或过滤导致');
+                    document.getElementById('equityInfo').textContent = '资金曲线没有有效数据点';
+                    chartContainer.innerHTML = `<p style="text-align:center;color:#6c757d;padding:40px;">资金曲线为空（无有效数据点）。如仍为空，请检查后端时间戳单位。</p>`;
+                    return;
+                }
+
+                // 销毁现有图表
+                if (equityChart) {
+                    equityChart.remove();
+                    equityChart = null;
+                    equityLineSeries = null;
+                }
+
+                // 宽度自适配（容器可能尚未布局完成）
+                let chartWidth = chartContainer.clientWidth;
+                if (!chartWidth || chartWidth < 10) {
+                    chartWidth = chartContainer.parentElement?.clientWidth || 800;
+                }
+
+                // 创建LightweightCharts图表
+                equityChart = LightweightCharts.createChart(chartContainer, {
+                    width: chartWidth,
+                    height: 250,
+                    layout: {
+                        backgroundColor: '#ffffff',
+                        textColor: '#333',
+                    },
+                    grid: {
+                        vertLines: { color: '#e1e1e1' },
+                        horzLines: { color: '#e1e1e1' },
+                    },
+                    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+                    rightPriceScale: {
+                        borderColor: '#cccccc',
+                        scaleMargins: { top: 0.1, bottom: 0.1 },
+                    },
+                    timeScale: {
+                        borderColor: '#cccccc',
+                        timeVisible: true,
+                        secondsVisible: false,
+                    },
+                    localization: {
+                        priceFormatter: (price) => `${price.toFixed(2)} USDT`,
+                        timeFormatter: (time) => {
+                            const date = new Date(time * 1000);
+                            return date.toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                        },
+                    },
+                });
+
+                // 创建线条系列
+                equityLineSeries = equityChart.addLineSeries({
+                    color: '#667eea',
+                    lineWidth: 3,
+                    crosshairMarkerVisible: true,
+                    crosshairMarkerRadius: 6,
+                    crosshairMarkerBorderColor: '#667eea',
+                    crosshairMarkerBackgroundColor: '#667eea',
+                    lastValueVisible: true,
+                    priceLineVisible: true,
+                    title: '账户权益',
+                });
+
+                // 时间戳单位自适配（支持秒/毫秒输入，统一为秒）
+                const looksMs = cleaned[0][0] > 1000000000000; // 1e12
+                const equityData = cleaned.map(([t, v]) => ({
+                    time: looksMs ? Math.floor(Number(t) / 1000) : Number(t),
+                    value: Number(v)
+                }));
+
+                // 设置数据
+                equityLineSeries.setData(equityData);
+
+                // 自适应大小
+                window.addEventListener('resize', () => {
+                    const w = chartContainer.clientWidth || chartContainer.parentElement?.clientWidth || chartWidth;
+                    equityChart.applyOptions({ width: w });
+                });
+
+                // 更新图表信息
+                const initialEquity = equityData[0].value;
+                const finalEquity = equityData[equityData.length - 1].value;
+                const totalReturn = ((finalEquity - initialEquity) / initialEquity * 100).toFixed(2);
+                document.getElementById('equityInfo').textContent = `初始: ${initialEquity.toFixed(2)} USDT | 最终: ${finalEquity.toFixed(2)} USDT | 收益: ${totalReturn}%`;
+
+                // 调试日志（最多打印前后各 3 个点）
+                const head = equityData.slice(0, 3);
+                const tail = equityData.slice(Math.max(equityData.length - 3, 0));
+                console.log(`资金曲线点数: ${equityData.length}`);
+                console.log('资金曲线样本(前3):', head);
+                console.log('资金曲线样本(后3):', tail);
+
+            } catch (error) {
+                console.error('显示资金曲线图失败:', error);
+                document.getElementById('equityInfo').textContent = '资金曲线图加载失败';
+                document.getElementById('equityChart').innerHTML = `<p style="text-align: center; color: #dc3545; padding: 50px;">资金曲线图加载失败: ${error.message}</p>`;
+            }
+        }
+
+        // 在K线图上显示交易标记
+        function displayTradeMarkers(trades) {
+            if (!candlestickSeries || !trades || trades.length === 0) {
+                console.log('无法显示交易标记：缺少K线图或交易数据');
+                return;
+            }
+
+            try {
+                // 清除现有标记
+                tradeMarkers = [];
+
+                // 获取开关状态
+                const showBuyLong = document.getElementById('showBuyLong').checked;
+                const showSellShort = document.getElementById('showSellShort').checked;
+                const showSellLong = document.getElementById('showSellLong').checked;
+                const showBuyShort = document.getElementById('showBuyShort').checked;
+
+                // 为每个交易创建标记
+                const markers = trades.filter(trade => {
+                    const side = trade.side.toUpperCase();
+                    // 根据开关状态过滤交易
+                    switch(side) {
+                        case 'BUY_LONG': return showBuyLong;
+                        case 'SELL_SHORT': return showSellShort;
+                        case 'SELL_LONG': return showSellLong;
+                        case 'BUY_SHORT': return showBuyShort;
+                        default: return false;
+                    }
+                }).map(trade => {
+                    const timestamp = trade.timestamp;
+                    const side = trade.side.toUpperCase();
+
+                    // 根据交易类型设置标记样式
+                    let color, shape, text, position;
+
+                    switch(side) {
+                        case 'BUY_LONG':  // 买入开多
+                            color = '#00ff00';  // 绿色
+                            shape = 'arrowUp';
+                            text = '开多';
+                            position = 'belowBar';
+                            break;
+                        case 'SELL_SHORT':  // 卖出开空
+                            color = '#ff0000';  // 红色
+                            shape = 'arrowDown';
+                            text = '开空';
+                            position = 'aboveBar';
+                            break;
+                        case 'SELL_LONG':  // 卖出平多
+                            color = '#ffaa00';  // 橙色
+                            shape = 'arrowDown';
+                            text = '平多';
+                            position = 'aboveBar';
+                            break;
+                        case 'BUY_SHORT':  // 买入平空
+                            color = '#00aaff';  // 蓝色
+                            shape = 'arrowUp';
+                            text = '平空';
+                            position = 'belowBar';
+                            break;
+                        default:
+                            color = '#888888';
+                            shape = 'circle';
+                            text = '交易';
+                            position = 'belowBar';
+                    }
+
+                    return {
+                        time: timestamp,
+                        position: position,
+                        color: color,
+                        shape: shape,
+                        text: `${text}\n${trade.price.toFixed(2)}`,
+                        size: 1.5
+                    };
+                });
+
+                // 设置标记到K线图
+                candlestickSeries.setMarkers(markers);
+                tradeMarkers = markers;
+
+                console.log(`已在K线图上显示 ${markers.length} 个交易标记 (总交易数: ${trades.length})`);
+
+            } catch (error) {
+                console.error('显示交易标记失败:', error);
+            }
+        }
+
+        // 更新交易标记显示（当开关状态改变时调用）
+        function updateTradeMarkers() {
+            if (window.currentBacktestResult && window.currentBacktestResult.trades) {
+                displayTradeMarkers(window.currentBacktestResult.trades);
+            }
+        }
+
+        // 🎯 设置K线图悬停信息处理
+        function setupKlineCrosshairHandler(chart, series, klineData) {
+            const tooltip = document.getElementById('klineTooltip');
+            const tooltipContent = document.getElementById('tooltipContent');
+
+            chart.subscribeCrosshairMove(param => {
+                if (param.point === undefined || !param.time || param.point.x < 0 || param.point.y < 0) {
+                    tooltip.style.display = 'none';
+                    return;
+                }
+
+                // 查找对应的K线数据
+                const klineIndex = klineData.findIndex(k => k.timestamp === param.time);
+                if (klineIndex === -1) {
+                    tooltip.style.display = 'none';
+                    return;
+                }
+
+                const kline = klineData[klineIndex];
+
+                // 计算涨跌幅和振幅
+                const prevClose = klineIndex > 0 ? klineData[klineIndex - 1].close : kline.open;
+                const change = kline.close - prevClose;
+                const changePercent = ((change / prevClose) * 100).toFixed(2);
+                const amplitude = (((kline.high - kline.low) / prevClose) * 100).toFixed(2);
+
+                // 计算VWAP (成交额/成交量) - 处理没有quote_volume的情况
+                const quoteVolume = kline.quote_volume || (kline.volume * kline.close); // 如果没有成交额，用成交量*收盘价估算
+                const vwap = kline.volume > 0 ? (quoteVolume / kline.volume).toFixed(4) : '0.0000';
+
+                // 格式化时间
+                const date = new Date(param.time * 1000);
+                const timeStr = date.toLocaleString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                // 构建悬停信息内容
+                const changeColor = change >= 0 ? '#0ecb81' : '#f6465d';
+                tooltipContent.innerHTML = `
+                    <div style="margin-bottom: 5px; font-weight: bold;">${timeStr}</div>
+                    <div>开盘: <span style="color: #d1d4dc;">${kline.open.toFixed(4)}</span></div>
+                    <div>最高: <span style="color: #d1d4dc;">${kline.high.toFixed(4)}</span></div>
+                    <div>最低: <span style="color: #d1d4dc;">${kline.low.toFixed(4)}</span></div>
+                    <div>收盘: <span style="color: #d1d4dc;">${kline.close.toFixed(4)}</span></div>
+                    <div>涨跌幅: <span style="color: ${changeColor};">${changePercent}%</span></div>
+                    <div>振幅: <span style="color: #d1d4dc;">${amplitude}%</span></div>
+                    <div>成交量: <span style="color: #d1d4dc;">${kline.volume.toFixed(2)}</span></div>
+                    <div>成交额: <span style="color: #d1d4dc;">${quoteVolume.toFixed(2)}</span></div>
+                    <div>VWAP: <span style="color: #d1d4dc;">${vwap}</span></div>
+                `;
+
+                // 定位悬停框
+                const chartRect = chart.chartElement().getBoundingClientRect();
+                tooltip.style.display = 'block';
+                tooltip.style.left = (param.point.x + 15) + 'px';
+                tooltip.style.top = (param.point.y - 10) + 'px';
+            });
+        }
+
+        // 清空图表
+        function clearCharts() {
+            if (klineChart) {
+                klineChart.remove();
+                klineChart = null;
+                candlestickSeries = null;
+            }
+
+            if (equityChart) {
+                equityChart.remove();
+                equityChart = null;
+                equityLineSeries = null;
+            }
+
+            currentKlineData = null;
+            tradeMarkers = []; // 清空交易标记
+            document.getElementById('klineInfo').textContent = '数据范围: 2019-11-01 至 2025-06-15 | 请选择时间范围加载数据';
+            document.getElementById('equityInfo').textContent = '等待回测数据...';
+            document.getElementById('resultsPanel').classList.add('hidden');
+        }
+
+        // 运行回测（优先 WebSocket 推送，失败时回退为轮询）
+        async function runBacktest() {
+            // 自动加载K线数据以满足“开始回测默认加载K线”的需求
+            if (!currentKlineData) {
+                const logEl = document.getElementById('progressLog');
+                if (logEl) {
+                    logEl.textContent = '未检测到K线数据，正在自动加载...';
+                }
+                await loadKlineData();
+            }
+
+            const button = document.getElementById('backtestBtn');
+            const progressContainer = document.getElementById('progressContainer');
+            const status = document.getElementById('status');
+
+            try {
+                // 禁用按钮
+                button.disabled = true;
+                button.textContent = '⏳ 回测中...';
+
+                // 显示进度
+                progressContainer.classList.remove('hidden');
+                progressContainer.style.display = 'block';
+                status.classList.add('hidden');
+                updateProgress(0, '准备回测参数...');
+                // 重置进度日志
+                progressMessages = [];
+                lastLogLength = 0;
+                const logEl = document.getElementById('progressLog');
+                if (logEl) logEl.innerHTML = '';
+
+                // 收集参数（直接作为 WebSocket 首条消息发送）
+                const params = {
+                    symbol: document.getElementById('symbol').value,
+                    startDate: document.getElementById('startDate').value,
+                    endDate: document.getElementById('endDate').value,
+                    initialCapital: parseFloat(document.getElementById('initialCapital').value),
+                    leverage: parseInt(document.getElementById('leverage').value),
+
+                    bidSpread: parseFloat(document.getElementById('bidSpread').value),
+                    askSpread: parseFloat(document.getElementById('askSpread').value),
+                    maxPositionRatio: parseFloat(document.getElementById('maxPositionRatio').value),
+                    orderRefreshTime: parseFloat(document.getElementById('orderRefreshTime').value),
+                    useDynamicOrderSize: document.getElementById('useDynamicOrderSize').checked,
+
+                    makerFee: parseFloat(document.getElementById('makerFee').value),
+                    takerFee: parseFloat(document.getElementById('takerFee').value),
+                    useFeeRebate: document.getElementById('useFeeRebate').checked,
+                    rebateRate: parseFloat(document.getElementById('rebateRate').value),
+
+                    positionMode: 'Hedge',
+                    minOrderAmount: 0.008,
+                    maxOrderAmount: 99.0,
+                    positionStopLoss: 0.05,
+                    enablePositionStopLoss: false,
+
+                    // 开发者模式：默认关闭，仅用于排障
+                    devMode: document.getElementById('devModeToggle')?.checked === true
+                };
+
+                let finished = false;
+
+                // 构建 WebSocket 地址（同源）
+                const wsUrl = (window.location.protocol === 'https:' ? 'wss' : 'ws') + '://' + window.location.host + '/ws/backtest';
+
+                let ws;
+                let reconnectAttempts = 0;
+                try {
+                    ws = new WebSocket(wsUrl);
+                } catch (e) {
+                    追加日志行('WebSocket 初始化失败，回退到轮询模式', 'log-warn');
+                    await fallbackPolling(params, status);
+                    finished = true;
+                }
+
+                if (ws && !finished) {
+                    let opened = false;
+                    await new Promise((resolve) => {
+                        ws.onopen = () => {
+                            opened = true;
+                            try {
+                                ws.send(JSON.stringify(params));
+                                追加日志行('已通过WebSocket发起回测', 'log-stage');
+                            } catch (sendErr) {
+                                追加日志行('发送参数失败，回退到轮询模式', 'log-warn');
+                                ws.close();
+                            }
+                        };
+                        ws.onmessage = (event) => {
+                            let msg;
+                            try {
+                                msg = JSON.parse(event.data);
+                            } catch (_) {
+                                追加日志行('收到非JSON消息，已忽略', 'log-warn');
+                                return;
+                            }
+                            const type = msg.type || msg.event;
+                            if (type === 'progress') {
+                                const p = Number(msg.progress ?? msg.percent ?? 0);
+                                const m = msg.message || '处理中...';
+                                updateProgress(p, m);
+                            } else if (type === 'log') {
+                                // 仅在开发者模式显示
+                                if (document.getElementById('devModeToggle')?.checked) {
+                                    const text = msg.text || '';
+                                    if (text) 追加日志行(text);
+                                }
+                            } else if (type === 'result') {
+                                stopProgressMonitoring();
+                                updateProgress(100, '回测完成');
+                                const result = msg.result || {};
+                                if (result && (result.success === undefined || result.success === true)) {
+                                    status.className = 'status success';
+                                    status.textContent = '回测执行成功！';
+                                    status.classList.remove('hidden');
+
+                                    displayBacktestResults(result);
+                                    if (result.equity_history) {
+                                        追加日志行(`资金曲线点数: ${Array.isArray(result.equity_history) ? result.equity_history.length : 0}`,'log-debug');
+                                        displayEquityChart(result.equity_history);
+                                    }
+                                    window.currentBacktestResult = result;
+                                    if (result.trades) {
+                                        displayTradeMarkers(result.trades);
+                                    }
+                                    finished = true;
+                                    ws.close();
+                                    resolve();
+                                } else {
+                                    const errMsg = (result && result.error) ? result.error : '回测失败';
+                                    追加日志行(errMsg, 'log-error');
+                                    // 调试：输出原始消息，定位错误字段缺失问题
+                                    try { 追加日志行('原始消息: ' + event.data, 'log-debug'); } catch (_) {}
+                                    ws.close();
+                                    resolve();
+                                }
+                            } else if (type === 'error') {
+                                const errMsg = msg.error || '回测失败';
+                                // 若错误内容其实是 PROGRESS 行，则按进度处理，避免误降级
+                                if (typeof errMsg === 'string' && errMsg.startsWith('PROGRESS:')) {
+                                    const parts = errMsg.split(':');
+                                    if (parts.length >= 4) {
+                                        const pct = parseFloat((parts[2] || '').replace('%','')) || 0;
+                                        const m = parts[3] || '处理中...';
+                                        updateProgress(pct, m);
+                                        return;
+                                    }
+                                }
+                                追加日志行(errMsg, 'log-error');
+                                // 调试：输出原始消息，定位错误来源
+                                try { 追加日志行('原始消息: ' + event.data, 'log-debug'); } catch (_) {}
+                                // WebSocket错误时，降级到仅轮询现有进度以拿到最终结果
+                                (async () => {
+                                    try {
+                                        if (!finished) {
+                                            追加日志行('检测到WebSocket错误，降级到进度结果模式', 'log-warn');
+                                            startProgressMonitoring();
+                                            await fetchProgressFinalResult(status);
+                                            finished = true;
+                                        }
+                                    } catch (_) {}
+                                    ws.close();
+                                    resolve();
+                                })();
+                            } else if (msg.message) {
+                                追加日志行(msg.message);
+                            }
+                        };
+                        ws.onerror = () => {
+                            追加日志行('WebSocket 通道出现错误', 'log-warn');
+                            ws.close();
+                        };
+                        ws.onclose = () => {
+                            if (!finished && reconnectAttempts < 1) {
+                                reconnectAttempts += 1;
+                                const delay = 1500 * reconnectAttempts;
+                                追加日志行(`WebSocket 断开，${delay}ms 后尝试重连...`, 'log-warn');
+                                setTimeout(() => {
+                                    try {
+                                        ws = new WebSocket(wsUrl);
+                                    } catch (reErr) {
+                                        追加日志行('重连失败（初始化错误）', 'log-warn');
+                                        resolve();
+                                        return;
+                                    }
+                                    let reopened = false;
+                                    ws.onopen = () => {
+                                        reopened = true;
+                                        try {
+                                            ws.send(JSON.stringify(params));
+                                            追加日志行('已通过WebSocket重连并继续回测', 'log-stage');
+                                        } catch (sendErr) {
+                                            追加日志行('重连后发送参数失败', 'log-warn');
+                                            ws.close();
+                                        }
+                                    };
+                                    ws.onmessage = (event) => {
+                                        let msg;
+                                        try { msg = JSON.parse(event.data); } catch (_) { return; }
+                                        const type = msg.type || msg.event;
+                                        if (type === 'progress') {
+                                            const p = Number(msg.progress ?? msg.percent ?? 0);
+                                            const m = msg.message || '处理中...';
+                                            updateProgress(p, m);
+                                        } else if (type === 'log') {
+                                            if (document.getElementById('devModeToggle')?.checked) {
+                                                const text = msg.text || '';
+                                                if (text) 追加日志行(text);
+                                            }
+                                        } else if (type === 'result') {
+                                            stopProgressMonitoring();
+                                            updateProgress(100, '回测完成');
+                                            const result = msg.result || {};
+                                            if (result && (result.success === undefined || result.success === true)) {
+                                                status.className = 'status success';
+                                                status.textContent = '回测执行成功！';
+                                                status.classList.remove('hidden');
+                                                displayBacktestResults(result);
+                                                if (result.equity_history) {
+                                                    追加日志行(`资金曲线点数: ${Array.isArray(result.equity_history) ? result.equity_history.length : 0}`,'log-debug');
+                                                    displayEquityChart(result.equity_history);
+                                                }
+                                                window.currentBacktestResult = result;
+                                                if (result.trades) displayTradeMarkers(result.trades);
+                                                finished = true;
+                                                ws.close();
+                                                resolve();
+                                            } else {
+                                                const errMsg = (result && result.error) ? result.error : '回测失败';
+                                                追加日志行(errMsg, 'log-error');
+                                                try { 追加日志行('原始消息: ' + event.data, 'log-debug'); } catch (_) {}
+                                                ws.close();
+                                                resolve();
+                                            }
+                                        } else if (type === 'error') {
+                                            const errMsg = msg.error || '回测失败';
+                                            if (typeof errMsg === 'string' && errMsg.startsWith('PROGRESS:')) {
+                                                const parts = errMsg.split(':');
+                                                if (parts.length >= 4) {
+                                                    const pct = parseFloat((parts[2] || '').replace('%','')) || 0;
+                                                    const m = parts[3] || '处理中...';
+                                                    updateProgress(pct, m);
+                                                    return;
+                                                }
+                                            }
+                                            追加日志行(errMsg, 'log-error');
+                                            try { 追加日志行('原始消息: ' + event.data, 'log-debug'); } catch (_) {}
+                                            // WebSocket错误时，降级到仅轮询现有进度以拿到最终结果
+                                            (async () => {
+                                                try {
+                                                    if (!finished) {
+                                                        追加日志行('重连后仍报错，降级到进度结果模式', 'log-warn');
+                                                        startProgressMonitoring();
+                                                        await fetchProgressFinalResult(status);
+                                                        finished = true;
+                                                    }
+                                                } catch (_) {}
+                                                ws.close();
+                                                resolve();
+                                            })();
+                                        }
+                                    };
+                                    ws.onerror = () => { ws.close(); };
+                                    ws.onclose = () => {
+                                        if (!finished) resolve();
+                                    };
+                                }, delay);
+                            } else if (!finished) {
+                                resolve();
+                            }
+                        };
+                    });
+
+                    if (!finished && !opened) {
+                        await fallbackPolling(params, status);
+                        finished = true;
+                    }
+                }
+
+            } catch (error) {
+                stopProgressMonitoring();
+                updateProgress(0, '回测失败');
+                // 进度条标红
+                const fillEl = document.getElementById('progressFill');
+                if (fillEl) {
+                    fillEl.classList.remove('striped', 'animated', 'ok');
+                    fillEl.classList.add('error');
+                }
+
+                status.className = 'status error';
+                status.textContent = `回测失败: ${error.message}`;
+                status.classList.remove('hidden');
+
+                console.error('回测失败:', error);
+            } finally {
+                // 恢复按钮状态
+                button.disabled = false;
+                button.textContent = '🚀 开始回测';
+            }
+        }
+
+        // 从日志粗暴提取JSON结果（兜底）
+        function tryExtractResultFromLogs(logs) {
+            if (!Array.isArray(logs) || logs.length === 0) return null;
+            const txt = logs.join('\n');
+            const tryParse = (s) => { try { return JSON.parse(s); } catch { return null; } };
+            let obj = tryParse(txt);
+            if (obj) return obj;
+            const s = txt.indexOf('{'); const e = txt.lastIndexOf('}');
+            if (s >= 0 && e > s) obj = tryParse(txt.slice(s, e + 1));
+            if (obj) return obj;
+            // 括号配对取最后一个完整对象
+            let depth = 0, start = -1, cand = null;
+            for (let i = 0; i < txt.length; i++) {
+                const ch = txt[i];
+                if (ch === '{') { if (depth === 0) start = i; depth++; }
+                else if (ch === '}') { if (depth > 0) { depth--; if (depth === 0 && start !== -1) { cand = txt.slice(start, i + 1); } } }
+            }
+            if (cand) return tryParse(cand);
+            return null;
+        }
+
+        // 仅拉取已有进度的最终结果，不重新发起回测
+        async function fetchProgressFinalResult(status) {
+            try {
+                let finalResult = null;
+                // 已经在外部开启了进度监控，无需重复
+                for (let i = 0; i < 120; i++) { // 最多轮询2分钟
+                    let pdata = null;
+                    try {
+                        const pr = await fetch(`${BACKEND_URL}/progress`);
+                        pdata = await pr.json();
+                    } catch (netErr) {
+                        追加日志行('网络波动，进度获取失败，正在重试...', 'log-warn');
+                        await new Promise(r => setTimeout(r, 1000));
+                        continue;
+                    }
+                    if (pdata.progress !== undefined) {
+                        updateProgress(pdata.progress, pdata.message || '处理中...');
+                    }
+                    if (pdata.logs && Array.isArray(pdata.logs)) {
+                        const newLogs = pdata.logs.slice(lastLogLength);
+                        if (newLogs.length > 0) {
+                            newLogs.forEach(line => { if (!line) return; 追加日志行(line); });
+                            lastLogLength = pdata.logs.length;
+                        }
+                    }
+                    if (pdata.progress >= 100) {
+                        if (pdata.error) throw new Error(pdata.error);
+                        if (pdata.result) finalResult = pdata.result;
+                        if (!finalResult && pdata.logs) {
+                            const maybe = tryExtractResultFromLogs(pdata.logs);
+                            if (maybe) finalResult = maybe;
+                        }
+                        break;
+                    }
+                    await new Promise(r => setTimeout(r, 1000));
+                }
+                stopProgressMonitoring();
+                if (finalResult && (finalResult.success === undefined || finalResult.success === true)) {
+                    updateProgress(100, '回测完成');
+                    status.className = 'status success';
+                    status.textContent = '回测执行成功！';
+                    status.classList.remove('hidden');
+                    displayBacktestResults(finalResult);
+                    if (finalResult.equity_history) {
+                        displayEquityChart(finalResult.equity_history);
+                    }
+                    window.currentBacktestResult = finalResult;
+                    if (finalResult.trades) displayTradeMarkers(finalResult.trades);
+                    return finalResult;
+                } else {
+                    // 兜底：直接取 /result
+                    try {
+                        const r = await fetch(`${BACKEND_URL}/result`);
+                        const j = await r.json();
+                        if (j && j.success && j.result) {
+                            updateProgress(100, '回测完成');
+                            status.className = 'status success';
+                            status.textContent = '回测执行成功！';
+                            status.classList.remove('hidden');
+                            displayBacktestResults(j.result);
+                            if (j.result.equity_history) displayEquityChart(j.result.equity_history);
+                            window.currentBacktestResult = j.result;
+                            if (j.result.trades) displayTradeMarkers(j.result.trades);
+                            return j.result;
+                        }
+                    } catch (_) {}
+                    throw new Error(finalResult && finalResult.error ? finalResult.error : '回测失败');
+                }
+            } catch (error) {
+                stopProgressMonitoring();
+                updateProgress(0, '回测失败');
+                const fillEl = document.getElementById('progressFill');
+                if (fillEl) {
+                    fillEl.classList.remove('striped', 'animated', 'ok');
+                    fillEl.classList.add('error');
+                }
+                status.className = 'status error';
+                status.textContent = `回测失败: ${error.message}`;
+                status.classList.remove('hidden');
+                console.error('回测失败:', error);
+                throw error;
+            }
+        }
+
+        // 轮询回退逻辑（兼容旧接口）
+        async function fallbackPolling(params, status) {
+            try {
+                // 开始进度监控
+                startProgressMonitoring();
+
+                // 发送回测请求
+                const response = await fetch(`${BACKEND_URL}/backtest`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(params)
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                try {
+                    const ct = response.headers.get('content-type') || '';
+                    if (ct.includes('application/json')) {
+                        await response.json();
+                    }
+                } catch (_) { /* 忽略 */ }
+
+                let finalResult = null;
+                while (true) {
+                    let pdata = null;
+                    try {
+                        const pr = await fetch(`${BACKEND_URL}/progress`);
+                        pdata = await pr.json();
+                    } catch (netErr) {
+                        追加日志行('网络波动，进度获取失败，正在重试...', 'log-warn');
+                        await new Promise(r => setTimeout(r, 1000));
+                        continue;
+                    }
+                    if (pdata.progress !== undefined) {
+                        updateProgress(pdata.progress, pdata.message || '处理中...');
+                    }
+                    if (pdata.logs && Array.isArray(pdata.logs)) {
+                        const newLogs = pdata.logs.slice(lastLogLength);
+                        if (newLogs.length > 0) {
+                            newLogs.forEach(line => { if (!line) return; 追加日志行(line); });
+                            lastLogLength = pdata.logs.length;
+                        }
+                    }
+                    if (pdata.progress >= 100) {
+                        if (pdata.error) throw new Error(pdata.error);
+                        if (pdata.result) finalResult = pdata.result;
+                        if (!finalResult && pdata.logs) {
+                            const maybe = tryExtractResultFromLogs(pdata.logs);
+                            if (maybe) finalResult = maybe;
+                        }
+                        break;
+                    }
+                    await new Promise(r => setTimeout(r, 1000));
+                }
+
+                // 停止进度监控
+                stopProgressMonitoring();
+
+                if (finalResult && (finalResult.success === undefined || finalResult.success === true)) {
+                    updateProgress(100, '回测完成');
+                    status.className = 'status success';
+                    status.textContent = '回测执行成功！';
+                    status.classList.remove('hidden');
+                    displayBacktestResults(finalResult);
+                    if (finalResult.equity_history) {
+                        追加日志行(`资金曲线点数: ${Array.isArray(finalResult.equity_history) ? finalResult.equity_history.length : 0}`,'log-debug');
+                        displayEquityChart(finalResult.equity_history);
+                    }
+                    window.currentBacktestResult = finalResult;
+                    if (finalResult.trades) displayTradeMarkers(finalResult.trades);
+                    return finalResult;
+                } else {
+                    throw new Error(finalResult && finalResult.error ? finalResult.error : '回测失败');
+                }
+            } catch (error) {
+                stopProgressMonitoring();
+                updateProgress(0, '回测失败');
+                const fillEl = document.getElementById('progressFill');
+                if (fillEl) {
+                    fillEl.classList.remove('striped', 'animated', 'ok');
+                    fillEl.classList.add('error');
+                }
+                status.className = 'status error';
+                status.textContent = `回测失败: ${error.message}`;
+                status.classList.remove('hidden');
+                console.error('回测失败:', error);
+                throw error;
+            }
+        }
+
+        // 更新进度
+        function updateProgress(percent, message) {
+            const fillEl = document.getElementById('progressFill');
+            fillEl.style.width = percent + '%';
+            // 完成态标记
+            isFinished = percent >= 100;
+            // 进度动画状态控制
+            if (percent >= 100) {
+                fillEl.classList.remove('striped', 'animated', 'error');
+                fillEl.classList.add('ok');
+                // 完成后停止轮询
+                try { stopProgressMonitoring(); } catch (_) {}
+            } else {
+                fillEl.classList.add('striped', 'animated');
+                fillEl.classList.remove('ok');
+            }
+            document.getElementById('progressText').textContent = `${percent}% - ${message}`;
+            const logEl = document.getElementById('progressLog');
+            if (logEl && message) {
+                const last = progressMessages.length > 0 ? progressMessages[progressMessages.length - 1] : null;
+                if (message !== last) {
+                    progressMessages.push(message);
+                    追加日志行(message, 'log-stage');
+                }
+            }
+        }
+
+        // 开始进度监控
+        function startProgressMonitoring() {
+            progressInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`${BACKEND_URL}/progress`);
+                    const data = await response.json();
+
+                    if (data.progress !== undefined) {
+                        updateProgress(data.progress, data.message || '处理中...');
+                    }
+                    // 追加后端日志到滚动窗口
+                    if (data.logs && Array.isArray(data.logs)) {
+                        const newLogs = data.logs.slice(lastLogLength);
+                        if (newLogs.length > 0) {
+                            newLogs.forEach(line => {
+                                if (!line) return;
+                                追加日志行(line);
+                            });
+                            lastLogLength = data.logs.length;
+                        }
+                    }
+                } catch (error) {
+                    console.error('获取进度失败:', error);
+                }
+            }, 1000);
+        }
+
+        // 停止进度监控
+        function stopProgressMonitoring() {
+            if (progressInterval) {
+                clearInterval(progressInterval);
+                progressInterval = null;
+            }
+            lastLogLength = 0;
+        }
+
+        // 显示回测结果
+        function displayBacktestResults(result) {
+            const resultsPanel = document.getElementById('resultsPanel');
+            const metricsGrid = document.getElementById('metricsGrid');
+
+            // 计算指标
+            const totalReturnPct = (result.total_return * 100).toFixed(2);
+            const maxDrawdownPct = (result.max_drawdown * 100).toFixed(2);
+            const winRate = (result.win_rate * 100).toFixed(2);
+
+            // 生成指标卡片
+            const metrics = [
+                { label: '总收益率', value: `${totalReturnPct}%`, class: totalReturnPct >= 0 ? 'positive' : 'negative' },
+                { label: '最大回撤', value: `${maxDrawdownPct}%`, class: 'negative' },
+                { label: '胜率', value: `${winRate}%`, class: winRate >= 50 ? 'positive' : 'negative' },
+                { label: '总交易次数', value: result.total_trades, class: '' },
+                { label: '初始资金', value: `${result.initial_capital} USDT`, class: '' },
+                { label: '最终权益', value: `${result.final_equity.toFixed(2)} USDT`, class: result.final_equity >= result.initial_capital ? 'positive' : 'negative' },
+                { label: '夏普比率', value: result.sharpe_ratio.toFixed(3), class: result.sharpe_ratio >= 0 ? 'positive' : 'negative' },
+                { label: '是否爆仓', value: result.is_liquidated ? '是' : '否', class: result.is_liquidated ? 'negative' : 'positive' }
+            ];
+
+            metricsGrid.innerHTML = metrics.map(metric => `
+                <div class="metric-card">
+                    <div class="metric-label">${metric.label}</div>
+                    <div class="metric-value ${metric.class}">${metric.value}</div>
+                </div>
+            `).join('');
+
+            resultsPanel.classList.remove('hidden');
+        }
+
+        // 添加交易标记到K线图
+        function addTradeMarkers(trades) {
+            if (!candlestickSeries || !trades || trades.length === 0) {
+                console.log('没有交易数据或K线图未初始化');
+                return;
+            }
+
+            console.log(`开始添加 ${trades.length} 个交易标记`);
+
+            const markers = trades.map(trade => {
+                let color, position, shape, text;
+
+                // 根据交易类型设置标记样式
+                const side = trade.side || '';
+
+                if (side.includes('buy_long') || side === 'BUY_LONG') {
+                    color = '#26a69a';
+                    position = 'belowBar';
+                    shape = 'arrowUp';
+                    text = '开多';
+                } else if (side.includes('sell_long') || side === 'SELL_LONG') {
+                    color = '#ff9800';
+                    position = 'aboveBar';
+                    shape = 'arrowDown';
+                    text = '平多';
+                } else if (side.includes('sell_short') || side === 'SELL_SHORT') {
+                    color = '#ef5350';
+                    position = 'aboveBar';
+                    shape = 'arrowDown';
+                    text = '开空';
+                } else if (side.includes('buy_short') || side === 'BUY_SHORT') {
+                    color = '#2196f3';
+                    position = 'belowBar';
+                    shape = 'arrowUp';
+                    text = '平空';
+                } else {
+                    color = '#9e9e9e';
+                    position = 'belowBar';
+                    shape = 'circle';
+                    text = '交易';
+                }
+
+                // 确保时间戳格式正确
+                let timestamp = trade.timestamp;
+                if (timestamp && timestamp > 1000000000000) {
+                    timestamp = Math.floor(timestamp / 1000);
+                }
+
+                return {
+                    time: timestamp,
+                    position: position,
+                    color: color,
+                    shape: shape,
+                    text: text,
+                    size: 1
+                };
+            }).filter(marker => marker.time); // 过滤掉无效时间戳
+
+            console.log(`生成了 ${markers.length} 个有效交易标记`);
+            candlestickSeries.setMarkers(markers);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+# 通用
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.swp
+*.bak
+
+# Node/前端
+**/node_modules/
+**/dist/
+**/.vite/
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/.venv/
+
+# 环境变量
+.env
+.env.*
+**/.env
+
+# 构建与缓存
+**/build/
+**/.cache/
+
+# 数据与二进制
+**/*.db
+**/*.sqlite
+**/*.h5
+**/*.hdf5
+
+# 工具/虚拟环境
+**/.python-version
+
+# 不采用的仓库（freqtrade 基底）
+动态对冲返佣网格/
+
+# 本地数据目录（按需取消注释）
+# 网格和回测可视化/K线data/

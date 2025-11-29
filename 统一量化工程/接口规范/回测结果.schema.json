@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "回测结果",
+  "type": "object",
+  "properties": {
+    "任务编号": { "type": "string" },
+    "交易对": { "type": "string" },
+    "时间框架": { "type": "string" },
+    "参数": { "type": "object", "additionalProperties": true },
+    "绩效": {
+      "type": "object",
+      "properties": {
+        "年化收益率": { "type": "number" },
+        "最大回撤": { "type": "number" },
+        "收益回撤比": { "type": "number" },
+        "胜率": { "type": "number" },
+        "交易次数": { "type": "integer" }
+      },
+      "required": ["年化收益率", "最大回撤", "收益回撤比", "胜率", "交易次数"]
+    },
+    "资金曲线": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "时间": { "type": "string", "format": "date-time" },
+          "净值": { "type": "number" }
+        },
+        "required": ["时间", "净值"]
+      }
+    },
+    "订单列表": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "时间": { "type": "string", "format": "date-time" },
+          "方向": { "type": "string", "enum": ["买入", "卖出"] },
+          "价格": { "type": "number" },
+          "数量": { "type": "number" }
+        },
+        "required": ["时间", "方向", "价格", "数量"]
+      }
+    },
+    "风险指标": {
+      "type": "object",
+      "properties": {
+        "波动率": { "type": "number" },
+        "夏普比率": { "type": "number" },
+        "卡玛比率": { "type": "number" }
+      },
+      "required": ["波动率", "夏普比率"]
+    }
+  },
+  "required": ["任务编号", "交易对", "时间框架", "参数", "绩效", "资金曲线"]
+}
+

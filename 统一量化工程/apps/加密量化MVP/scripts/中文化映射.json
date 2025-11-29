@@ -1,0 +1,19 @@
+{
+  "renameFiles": [
+    { "from": "src/pages/Dashboard.tsx", "to": "src/pages/仪表盘.tsx" },
+    { "from": "src/pages/StrategyConfig.tsx", "to": "src/pages/策略配置.tsx" },
+    { "from": "src/pages/BacktestResults.tsx", "to": "src/pages/回测结果.tsx" },
+    { "from": "src/pages/Optimization.tsx", "to": "src/pages/参数优化.tsx" },
+    { "from": "src/pages/LiveMonitor.tsx", "to": "src/pages/实时监控.tsx" },
+    { "from": "src/pages/DataManagement.tsx", "to": "src/pages/数据管理.tsx" },
+    { "from": "src/pages/Settings.tsx", "to": "src/pages/用户设置.tsx" },
+
+    { "from": "src/components/Layout.tsx", "to": "src/components/布局.tsx" },
+    { "from": "src/components/Empty.tsx", "to": "src/components/空状态.tsx" },
+
+    { "from": "src/pages/index.ts", "to": "src/pages/索引.ts" },
+    { "from": "src/stores/index.ts", "to": "src/stores/索引.ts" },
+    { "from": "src/types/index.ts", "to": "src/types/索引.ts" }
+  ],
+  "notes": "阶段一仅进行文件重命名与引用修正，不改变路由路径（/strategy-config 等保持英文）。API 响应字段保持英文（success/data/error），文案与日志中文化。后续阶段可按需中文化路由与 API 字段（建议版本化 /api/v2 处理）。"
+}

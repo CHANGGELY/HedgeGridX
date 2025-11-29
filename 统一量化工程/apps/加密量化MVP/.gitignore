@@ -1,0 +1,75 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.vite
+
+# Python virtual environment
+hedge_grid_env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Python data files and backtest folder
+*.h5
+*.hdf5
+*.csv
+*.pkl
+*.pickle
+择时策略回测/
+
+# Large data files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Installers / Executables (keep out of VCS)
+*.exe
+installers/
+
+# Environment variables
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.vercel

@@ -25,6 +25,11 @@ RUN python -m pip install -U pip setuptools wheel && \
 # Copy source
 COPY . /app
 
+# Create non-root user and grant ownership of the application directory
+RUN useradd --create-home --shell /usr/sbin/nologin --uid 10001 appuser && \
+    chown -R appuser:appuser /app
+USER appuser
+
 EXPOSE 8000
 
 ENV DATA_DIR=/app/K线data

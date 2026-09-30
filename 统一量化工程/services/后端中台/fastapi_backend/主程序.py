@@ -191,7 +191,7 @@ def _尝试解析JSON(文本: str):
 def 健康():
     return {"status": "ok"}
 
-n# 直接获取最终结果（前端兜底使用）
+# 直接获取最终结果（前端兜底使用）
 @应用.get("/result")
 def 获取结果():
     try:
@@ -543,6 +543,7 @@ async def _执行回测子进程(参数文件路径: str, 后台任务: Backgrou
                     cwd=str(项目根),
                     text=True,
                     encoding="utf-8",
+                    shell=False,
                 )
                 stdout_lines: List[str] = []
                 stderr_lines: List[str] = []
@@ -851,6 +852,7 @@ async def _执行回测子进程_ws(参数字典: dict, ws: WebSocket, dev_mode:
                     cwd=str(项目根),
                     text=True,
                     encoding="utf-8",
+                    shell=False,
                 )
 
                 stdout_lines: List[str] = []
